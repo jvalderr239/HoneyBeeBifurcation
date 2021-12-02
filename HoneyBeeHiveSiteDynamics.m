@@ -17,8 +17,11 @@ rng(239, 'twister')
 
 % Number of Time Steps
 max_iter = 250;
-% Time delta
-dt = 0.02;
+% Time delta (s indep. variable)
+ds = 0.02;
+
+% Singularity value for bifurcation parameter u
+singu = 1;
 
 %% Network Description
 BA = 1;
@@ -26,6 +29,13 @@ BB = -1;
 % Select figure to reproduce from "Multiagent Decision-Making Dynamics Inspired by Honeybees"
 fig2plot = 2; 
 [D, A, B, N] = generate_network_corrected(fig2plot, BA, BB);
+
+% N=3 network (strongly connected) for case of grid search
+D = 2*eye(3);
+A = ones(3);
+A = A - eye(3);
+B = [1; -1; 0];
+N = 3; 
 
 %% System dynamics
 % Control Parameter (stop signalling cross-inhibition in honeybees)
@@ -52,7 +62,24 @@ for uidx = 1:length(u)
     funcHive = @(x) hiveSiteConsensus(x,D,A,u(uidx),B);
     xidx = fsolve(funcHive,x0);
     yidx = mean(xidx);
-    
+    % Grid Search (brute force) N = 3
+    if u(uidx) > 1.15
+        grid = BB:.1:BA;
+        yidx_arr = [];
+        for g1 = 1:length(grid)
+            for g2 = 1:length(grid)
+                for g3 = 1:length(grid)
+                    x0 = [grid(g1) grid(g2) grid(g3)]';
+                    xidx = fsolve(funcHive,x0);
+                    yidx = mean(xidx);
+                    yidx_arr = [yidx_arr yidx];
+                end
+            end
+        end
+        yidx = round(yidx_arr,4); % Round to 4 decimal places
+        yidx = unique(yidx); % Select only for unique values
+    end
+     
 %     %simulate for a certain number of steps to find steady-state opinion
 %     for sim = 1:max_iter-1
 %         % Compute dx/ds = -Dx + u * AS(x) + B
@@ -70,7 +97,7 @@ for uidx = 1:length(u)
             elseif node > 5
                 color = '-.m';
             end
-            figure(model_redux_fig); hold on; plot(dt:dt:max_iter*dt, x(node,:), color)
+            figure(model_redux_fig); hold on; plot(ds:ds:max_iter*ds, x(node,:), color)
         end
         xlabel('Time (s)'); ylabel('Agent and average opinion ($x_{i}$,y)',...
             'Interpreter','latex');
