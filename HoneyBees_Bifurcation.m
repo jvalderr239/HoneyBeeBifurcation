@@ -1,60 +1,62 @@
 %{
-Authors: Jose, Hemant, Barin
-Description: Describe the system dynamics of honeybee nest 
-decision-making
-%}
 
-close all; clear all; clc
+%}
+% close all;
+ clear all; clc
 rng(239, 'twister')
-% time steps to take for simulation
+
+% Number of Time Steps
 max_iter = 250;
+% Time delta
 dt = 0.02;
-% inertia 
+% Agent (honeybee) Inertia 
 ui = 1.5;
-% social effort
+% Agent (honeybee) Social Effort or Attention paid to opinions of other
+% agents
 us = 3;
-%%
-% Network Description
-BA = 5;
-BB = -5;
-figure_to_plot = 2; % figure from honeybee paper
-[D, A, B, N] = generate_network(figure_to_plot, BA, BB);
+
+%% Network Description
+BA = -5;
+BB = -4.5;
+fig2plot = 2; % figure from honeybee paper
+[D, A, B, N] = generate_network_corrected(fig2plot, BA, BB);
 
 %% System dynamics
 
-% in order to visualize the behavior of the system
-% plot trajectories of x as a function of the control parameter u
-u_vals = .25:0.05:2;
+% Control Parameter (stop signalling cross-inhibition in honeybees)
+u = .25:0.005:2;
+
 % number of points to plot for bifurcation diagram
-steady_state_iterations = 0.1*max_iter;
-% Initialize vectors
+steady_state_iterations = floor(max_iter/10);
+
+% Initialization
 x = zeros(N,max_iter);
-avg_opinion = zeros(1, max_iter);
-%initial vals
-avg_opinion(:,1) = (1/N) * sum(x(:,1));
+y = zeros(1, max_iter);
+% Initial Condition for Average Opinion
+y(:,1) = (1/N) * sum(x(:,1));
 
 % Initialize plot
-if figure_to_plot == 4
+if fig2plot == 4
     model_redux_fig = figure();
 end
 bifurcation_fig = figure(); hold on;
-for u = 1:size(u_vals,2) 
+for uidx = 1:size(u,2) 
     % Initialize zero velocities
-    ux = zeros(N,1); 
+    dxds = zeros(N,1); 
     
-    % Agents' Initial Positions
+    % Agents' Initial Opinions
     x0 = BB + (BA - BB)*rand(N,1);
     x(:,1) = x0;
     %simulate for a certain number of steps to find steady-state opinion
     for sim = 1:max_iter-1
         % Compute dx/ds = -Dx + u * AS(x) + B
-        ux = -D*x(:,sim) + u_vals(:,u) * A * arrayfun(@tanh,x(:,sim)) + B;
+        dxds = -D*x(:,sim) + u(:,uidx) * A * arrayfun(@tanh,x(:,sim)) + B;
         % Integration step
-        x(:,sim+1) = x(:,sim) + ux.*ui*dt;
-        avg_opinion(:,sim+1) = (1/N) * sum(x(:,sim+1));
+        x(:,sim+1) = x(:,sim) + dxds*dt;
+        y(:,sim+1) = (1/N) * sum(x(:,sim+1));
     end
     % Update plot if
-    if u == 2 && figure_to_plot == 4
+    if u(uidx) == 2 && fig2plot == 4
         for node = 1:N
             color = '-.b';
             if node < 4
@@ -69,12 +71,12 @@ for u = 1:size(u_vals,2)
         hold off
     end
     %plot(1:max_iter, avg_opinion)
-    figure(bifurcation_fig), plot(u_vals(:,u)*ones(steady_state_iterations,1)', ...
-        avg_opinion(:,max_iter - steady_state_iterations + 1:end),...
+    figure(bifurcation_fig), plot(u(:,uidx)*ones(steady_state_iterations,1)', ...
+        y(:,max_iter - steady_state_iterations + 1:end),...
         '-.or','markersize', 2);
     
 end
 figure(bifurcation_fig)
 title('Bifurcation diagram');
-xlabel('Bifurcation paramter (u)');ylabel('Average Opinion (y)');
+xlabel('Bifurcation paramter (u)'); ylabel('Average Opinion (y)');
 hold off;
