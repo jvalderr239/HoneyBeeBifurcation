@@ -15,11 +15,6 @@ close all;
 clear all; clc
 rng(239, 'twister')
 
-% Number of Time Steps
-max_iter = 250;
-% Time delta (s indep. variable)
-ds = 0.02;
-
 % Singularity value for bifurcation parameter u
 singu = 1;
 
@@ -38,14 +33,14 @@ B = [1; -1; 0];
 N = 3; 
 
 % N=4 network (strongly connected) for case of grid search
-D = eye(4);
-D(1,1) = 2; D(2,2) = 2; D(3,3) = 3; D(4,4) = 1;
-A = [0 1 1 0 
-     1 0 1 0 
-     1 1 0 1 
-     0 0 1 0];
-B = [1; -1; 0; 0];
-N = 4;
+% D = eye(4);
+% D(1,1) = 2; D(2,2) = 2; D(3,3) = 3; D(4,4) = 1;
+% A = [0 1 1 0 
+%      1 0 1 0 
+%      1 1 0 1 
+%      0 0 1 0];
+% B = [1; -1; 0; 0];
+% N = 4;
 
 % N=6 network (strongly connected) for case of grid search
 % D = eye(6);
@@ -64,13 +59,6 @@ N = 4;
 % Control Parameter (stop signalling cross-inhibition in honeybees)
 u = .25:0.05:2;
 
-% Initialization of Opinions of Honeybees and Average Opinion
-% x = zeros(N,max_iter);
-y = zeros(1, max_iter);
-
-% Initial Condition for Average Opinion
-% y(:,1) = (1/N) * sum(x(:,1));
-
 % Initialize plot
 if fig2plot == 4
     model_redux_fig = figure();
@@ -85,80 +73,86 @@ for uidx = 1:length(u)
     funcHive = @(x) hiveSiteConsensus(x,D,A,u(uidx),B);
     xidx = fsolve(funcHive,x0);
     yidx = mean(xidx);
-    % Grid Search (brute force) N = 3
-    if N == 3
-        if u(uidx) > singu
-            grid = BB:.2:BA;
-            yidx_arr =[];
-            for g1 = 1:length(grid)
-                for g2 = 1:length(grid)
-                    for g3 = 1:length(grid)
-                        x0 = [grid(g1) grid(g2) grid(g3)]';
-                        xidx = fsolve(funcHive,x0);
-                        yidx = mean(xidx);
-                        yidx_arr = [yidx_arr yidx];
-                    end
-                end
-            end
-            yidx = round(yidx_arr,4); % Round to 4 decimal places
-            yidx = unique(yidx); % Select only for unique values
-        end
-    end
-    % Grid Search (brute force) N = 4
-    if N == 4
-        if u(uidx) > singu
-            grid = BB:.2:BA;
-            yidx_arr =[];
-            for g1 = 1:length(grid)
-                for g2 = 1:length(grid)
-                    for g3 = 1:length(grid)
-                        for g4 = 1:length(grid)
-                            x0 = [grid(g1) grid(g2) grid(g3) grid(g4)]';
-                            xidx = fsolve(funcHive,x0);
-                            yidx = mean(xidx);
-                            yidx_arr = [yidx_arr yidx];
-                        end
-                    end
-                end
-            end
-            yidx = round(yidx_arr,4); % Round to 4 decimal places
-            yidx = unique(yidx); % Select only for unique values
-        end
-    end
-    % Grid Search (brute force) N = 6
-    if N == 6
-        if u(uidx) > singu
-            grid = BB:.2:BA;
-            yidx_arr =[];
-            for g1 = 1:length(grid)
-                for g2 = 1:length(grid)
-                    for g3 = 1:length(grid)
-                          for g4 = 1:length(grid)
-                                for g5 = 1:length(grid)
-                                    for g6 = 1:length(grid)
-                                        x0 = [grid(g1) grid(g2) grid(g3) grid(g4) grid(g5) grid(g6)]';
-                                        xidx = fsolve(funcHive,x0);
-                                        yidx = mean(xidx);
-                                        yidx_arr = [yidx_arr yidx];
-                                    end
-                                end
-                          end
-                    end
-                end
-            end
-            yidx = round(yidx_arr,4); % Round to 4 decimal places
-            yidx = unique(yidx); % Select only for unique values
-        end
-    end
-     
-%     %simulate for a certain number of steps to find steady-state opinion
-%     for sim = 1:max_iter-1
-%         % Compute dx/ds = -Dx + u * AS(x) + B
-%         dxds = -D*x(:,sim) + u(uidx) * A * arrayfun(@tanh,x(:,sim)) + B;
-%         % Integration step
-%         x(:,sim+1) = x(:,sim) + dxds*dt;
-%         y(:,sim+1) = (1/N) * sum(x(:,sim+1));
+    
+    % Global Optimization Solver Method N = 3
+%     if N == 3
+%         if u(uidx) > 1.2
+%             objfun = @(x) norm(hiveSiteConsensus(x,D,A,u(uidx),B),1);
+%             problem = createOptimProblem('fmincon','x0',x0,'objective',objfun,'lb',0,'ub',0);
+%             ms = MultiStart('XTolerance',1e-4,'MaxTime',500);
+%             stpoints = RandomStartPointSet('NumStartPoints',100,'ArtificialBound',1);
+%             [xidx,fval,exitflag,output,solutions] = run(ms,problem,stpoints);
+%             yidx = mean(xidx);
+%         end
 %     end
+    % Grid Search (brute force) N = 3
+%     if N == 3
+%         if u(uidx) > singu
+%             grid = BB:.2:BA;
+%             yidx_arr =[];
+%             for g1 = 1:length(grid)
+%                 for g2 = 1:length(grid)
+%                     for g3 = 1:length(grid)
+%                         x0 = [grid(g1) grid(g2) grid(g3)]';
+%                         xidx = fsolve(funcHive,x0);
+%                         yidx = mean(xidx);
+%                         yidx_arr = [yidx_arr yidx];
+%                     end
+%                 end
+%             end
+%             yidx = round(yidx_arr,4); % Round to 4 decimal places
+%             yidx = unique(yidx); % Select only for unique values
+%         end
+%     end
+    % Grid Search (brute force) N = 4
+%     if N == 4
+%         if u(uidx) > singu
+%             grid = BB:.2:BA;
+%             yidx_arr =[];
+%             for g1 = 1:length(grid)
+%                 for g2 = 1:length(grid)
+%                     for g3 = 1:length(grid)
+%                         for g4 = 1:length(grid)
+%                             x0 = [grid(g1) grid(g2) grid(g3) grid(g4)]';
+%                             xidx = fsolve(funcHive,x0);
+%                             yidx = mean(xidx);
+%                             yidx_arr = [yidx_arr yidx];
+%                         end
+%                     end
+%                 end
+%             end
+%             yidx = round(yidx_arr,4); % Round to 4 decimal places
+%             yidx = unique(yidx); % Select only for unique values
+%         end
+%     end
+    % Grid Search (brute force) N = 6
+%     if N == 6
+%         if u(uidx) > singu
+%             grid = BB:.2:BA;
+%             yidx_arr =[];
+%             for g1 = 1:length(grid)
+%                 for g2 = 1:length(grid)
+%                     for g3 = 1:length(grid)
+%                           for g4 = 1:length(grid)
+%                                 for g5 = 1:length(grid)
+%                                     for g6 = 1:length(grid)
+%                                         x0 = [grid(g1) grid(g2) grid(g3) grid(g4) grid(g5) grid(g6)]';
+%                                         xidx = fsolve(funcHive,x0);
+%                                         yidx = mean(xidx);
+%                                         yidx_arr = [yidx_arr yidx];
+%                                     end
+%                                 end
+%                           end
+%                     end
+%                 end
+%             end
+%             yidx = round(yidx_arr,4); % Round to 4 decimal places
+%             yidx = unique(yidx); % Select only for unique values
+%         end
+%     end
+     
+
+
     % Update plot if
     if u(uidx) == 2 && fig2plot == 4
         for node = 1:N
@@ -174,14 +168,34 @@ for uidx = 1:length(u)
             'Interpreter','latex');
         hold off
     end
-    %plot(1:max_iter, avg_opinion)
+
      figure(bifurcation_fig), plot(u(uidx),yidx,'-.or','markersize', 2);
-%     figure(bifurcation_fig), plot(u(uidx)*ones(steady_state_iterations,1)', ...
-%         y(:,max_iter - steady_state_iterations + 1:end),...
-%         '-.or','markersize', 2);
     
 end
 figure(bifurcation_fig)
 title('Bifurcation diagram');
 xlabel('Bifurcation paramter (u)'); ylabel('Average Opinion (y)');
 hold off;
+
+
+% ***************************************************************************************
+% ******************************* UNUSED CODE *****************************
+%     %simulate for a certain number of steps to find steady-state opinion
+%     for sim = 1:max_iter-1
+%         % Compute dx/ds = -Dx + u * AS(x) + B
+%         dxds = -D*x(:,sim) + u(uidx) * A * arrayfun(@tanh,x(:,sim)) + B;
+%         % Integration step
+%         x(:,sim+1) = x(:,sim) + dxds*dt;
+%         y(:,sim+1) = (1/N) * sum(x(:,sim+1));
+%     end
+
+%     figure(bifurcation_fig), plot(u(uidx)*ones(steady_state_iterations,1)', ...
+%         y(:,max_iter - steady_state_iterations + 1:end),...
+%         '-.or','markersize', 2);
+
+% Initialization of Opinions of Honeybees and Average Opinion
+% x = zeros(N,max_iter);
+% y = zeros(1, max_iter);
+
+% Initial Condition for Average Opinion
+% y(:,1) = (1/N) * sum(x(:,1));
