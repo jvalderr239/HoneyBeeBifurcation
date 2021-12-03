@@ -37,18 +37,28 @@ A = A - eye(3);
 B = [1; -1; 0];
 N = 3; 
 
+% N=4 network (strongly connected) for case of grid search
+D = eye(4);
+D(1,1) = 2; D(2,2) = 2; D(3,3) = 3; D(4,4) = 1;
+A = [0 1 1 0 
+     1 0 1 0 
+     1 1 0 1 
+     0 0 1 0];
+B = [1; -1; 0; 0];
+N = 4;
+
 % N=6 network (strongly connected) for case of grid search
-D = eye(6);
-D(1,1) = 2; D(2,2) = 2; D(3,3) = 3;
-D(4,4) = 3; D(5,5) = 2; D(6,6) = 2;
-A = [0 1 1 0 0 0
-     1 0 1 0 0 0
-     1 1 0 1 0 0
-     0 0 1 0 1 1
-     0 0 0 1 0 1
-     0 0 0 1 1 0];
-B = [ones(3,1); -ones(3,1)];
-N = 6;
+% D = eye(6);
+% D(1,1) = 2; D(2,2) = 2; D(3,3) = 3;
+% D(4,4) = 3; D(5,5) = 2; D(6,6) = 2;
+% A = [0 1 1 0 0 0
+%      1 0 1 0 0 0
+%      1 1 0 1 0 0
+%      0 0 1 0 1 1
+%      0 0 0 1 0 1
+%      0 0 0 1 1 0];
+% B = [ones(3,1); -ones(3,1)];
+% N = 6;
      
 %% System dynamics
 % Control Parameter (stop signalling cross-inhibition in honeybees)
@@ -87,6 +97,27 @@ for uidx = 1:length(u)
                         xidx = fsolve(funcHive,x0);
                         yidx = mean(xidx);
                         yidx_arr = [yidx_arr yidx];
+                    end
+                end
+            end
+            yidx = round(yidx_arr,4); % Round to 4 decimal places
+            yidx = unique(yidx); % Select only for unique values
+        end
+    end
+    % Grid Search (brute force) N = 4
+    if N == 4
+        if u(uidx) > singu
+            grid = BB:.2:BA;
+            yidx_arr =[];
+            for g1 = 1:length(grid)
+                for g2 = 1:length(grid)
+                    for g3 = 1:length(grid)
+                        for g4 = 1:length(grid)
+                            x0 = [grid(g1) grid(g2) grid(g3) grid(g4)]';
+                            xidx = fsolve(funcHive,x0);
+                            yidx = mean(xidx);
+                            yidx_arr = [yidx_arr yidx];
+                        end
                     end
                 end
             end
