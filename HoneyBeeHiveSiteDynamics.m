@@ -7,29 +7,31 @@ bifurcation parameter value of interest using fsolve.m
 
 Dependencies: generate_network.m
 
-Authors: J. Valderrama, H. Kumawat, B.A. Moghimi
-Date: 2021 Dec 01
+Authors: B.A. Moghimi, J. Valderrama, H. Kumawat
+Date: 2021 Dec 03
 %}
 
 close all; 
 clear all; clc
 rng(239, 'twister')
 
-% Singularity value for bifurcation parameter u
+% Singularity value for bifurcation parameter u (Beta = 0 case)
 singu = 1;
 
-%% Network Description
+%% Network Description & System dynamics
+% Grid Search limits
 BA = 1;
 BB = -1;
+
 % Select figure to reproduce from "Multiagent Decision-Making Dynamics Inspired by Honeybees"
-fig2plot = 2; 
-[D, A, B, N] = generate_network_corrected(fig2plot, BA, BB);
+% fig2plot = 2; 
+% [D, A, B, N] = generate_network_corrected(fig2plot, BA, BB);
 
 % N=3 network (strongly connected) for case of grid search
 D = 2*eye(3);
 A = ones(3);
 A = A - eye(3);
-B = [1; -1; 0];
+B = [1; -.5; 0];
 N = 3; 
 
 % N=4 network (strongly connected) for case of grid search
@@ -55,7 +57,7 @@ N = 3;
 % B = [ones(3,1); -ones(3,1)];
 % N = 6;
      
-%% System dynamics
+
 % Control Parameter (stop signalling cross-inhibition in honeybees)
 u = .25:0.05:2;
 
@@ -63,47 +65,38 @@ u = .25:0.05:2;
 if fig2plot == 4
     model_redux_fig = figure();
 end
-bifurcation_fig = figure(); hold on;
+
+y = {}; % Average opinions 
 % Loop over 
-for uidx = 1:length(u) 
+for uidx = 1:length(u) %1:length(u) 
     
     % Agents' Initial Opinions
-    x0 = BB + (BA - BB)*rand(N,1);
+%     x0 = BB + (BA - BB)*rand(N,1);
 %     x(:,1) = x0;
     funcHive = @(x) hiveSiteConsensus(x,D,A,u(uidx),B);
-    xidx = fsolve(funcHive,x0);
-    yidx = mean(xidx);
+%     xidx = fsolve(funcHive,x0);
+%     yidx = mean(xidx);
     
-    % Global Optimization Solver Method N = 3
-%     if N == 3
-%         if u(uidx) > 1.2
-%             objfun = @(x) norm(hiveSiteConsensus(x,D,A,u(uidx),B),1);
-%             problem = createOptimProblem('fmincon','x0',x0,'objective',objfun,'lb',0,'ub',0);
-%             ms = MultiStart('XTolerance',1e-4,'MaxTime',500);
-%             stpoints = RandomStartPointSet('NumStartPoints',100,'ArtificialBound',1);
-%             [xidx,fval,exitflag,output,solutions] = run(ms,problem,stpoints);
-%             yidx = mean(xidx);
-%         end
-%     end
     % Grid Search (brute force) N = 3
-%     if N == 3
+    if N == 3
 %         if u(uidx) > singu
-%             grid = BB:.2:BA;
-%             yidx_arr =[];
-%             for g1 = 1:length(grid)
-%                 for g2 = 1:length(grid)
-%                     for g3 = 1:length(grid)
-%                         x0 = [grid(g1) grid(g2) grid(g3)]';
-%                         xidx = fsolve(funcHive,x0);
-%                         yidx = mean(xidx);
-%                         yidx_arr = [yidx_arr yidx];
-%                     end
-%                 end
-%             end
-%             yidx = round(yidx_arr,4); % Round to 4 decimal places
-%             yidx = unique(yidx); % Select only for unique values
+            grid = BB:.2:BA;
+            yidx_arr =[];
+            for g1 = 1:length(grid)
+                for g2 = 1:length(grid)
+                    for g3 = 1:length(grid)
+                        x0 = [grid(g1) grid(g2) grid(g3)]';
+                        xidx = fsolve(funcHive,x0);
+                        yidx = mean(xidx);
+                        yidx_arr = [yidx_arr yidx];
+                    end
+                end
+            end
+            yidx = round(yidx_arr,3); % Round to 4 decimal places
+            yidx = unique(yidx); % Select only for unique values
+            y{uidx} = yidx;
 %         end
-%     end
+    end
     % Grid Search (brute force) N = 4
 %     if N == 4
 %         if u(uidx) > singu
@@ -151,34 +144,40 @@ for uidx = 1:length(u)
 %         end
 %     end
      
-
-
     % Update plot if
-    if u(uidx) == 2 && fig2plot == 4
-        for node = 1:N
-            color = '-.b';
-            if node < 4
-                color = '-.g';
-            elseif node > 5
-                color = '-.m';
-            end
-            figure(model_redux_fig); hold on; plot(ds:ds:max_iter*ds, x(node,:), color)
-        end
-        xlabel('Time (s)'); ylabel('Agent and average opinion ($x_{i}$,y)',...
-            'Interpreter','latex');
-        hold off
-    end
-
-     figure(bifurcation_fig), plot(u(uidx),yidx,'-.or','markersize', 2);
-    
+%     if u(uidx) == 2 && fig2plot == 4
+%         for node = 1:N
+%             color = '-.b';
+%             if node < 4
+%                 color = '-.g';
+%             elseif node > 5
+%                 color = '-.m';
+%             end
+%             figure(model_redux_fig); hold on; plot(ds:ds:max_iter*ds, x(node,:), color)
+%         end
+%         xlabel('Time (s)'); ylabel('Agent and average opinion ($x_{i}$,y)',...
+%             'Interpreter','latex');
+%         hold off
+%     end
+  
 end
+
+%% Visualization
+bifurcation_fig = figure(); hold on;
 figure(bifurcation_fig)
-title('Bifurcation diagram');
-xlabel('Bifurcation paramter (u)'); ylabel('Average Opinion (y)');
+for ii=1:length(u)
+    z = y{ii};
+    for jj=1:length(z)
+        plot(u(ii),z(jj),'rx') % Need to include a marker type such as 'x' or 'o' to see points on figure
+    end
+end
+title({'Bifurcation diagram','N=3','\beta = [1, -.5, 0]'});
+xlabel('Bifurcation paramter (u)','FontSize',16,'FontWeight','bold');
+ylabel('Average Opinion (y)','FontSize',16,'FontWeight','bold');
 hold off;
 
 
-% ***************************************************************************************
+%% ***************************************************************************************
 % ******************************* UNUSED CODE *****************************
 %     %simulate for a certain number of steps to find steady-state opinion
 %     for sim = 1:max_iter-1
@@ -199,3 +198,20 @@ hold off;
 
 % Initial Condition for Average Opinion
 % y(:,1) = (1/N) * sum(x(:,1));
+
+% c = @(x)[];
+% ceq = @(x) -D*x(:,1) + u*A*sigmoidFunc(x(:,1)) + B;
+% nonlinfcn = @(x) deal(c(x),ceq(x));
+% problem = createOptimProblem('fmincon','x0',x0,'objective',objfun,'nonlcon',nonlinfcn);
+
+% Global Optimization Solver Method N = 3
+% if N == 3
+%     if u(uidx) > singu
+%         objfun = @(x) norm(hiveSiteConsensus(x,D,A,u(uidx),B),1);
+%         problem = createOptimProblem('fmincon','x0',x0,'objective',objfun,'lb',0,'ub',0);
+%         ms = MultiStart('XTolerance',1e-4,'MaxTime',500);
+%         stpoints = RandomStartPointSet('NumStartPoints',100,'ArtificialBound',1);
+%         [xidx,fval,exitflag,output,solutions] = run(ms,problem,stpoints);
+%         yidx = mean(xidx);
+%     end
+% end
