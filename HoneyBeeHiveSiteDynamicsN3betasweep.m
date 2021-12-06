@@ -1,14 +1,14 @@
 %{
-HoneyBeeHiveSiteDynamics.m
+HoneyBeeHiveSiteDynamicsN3betasweep.m
 Script that computes bifurcation for hive site selection dynamics with two
 alternatives. A plot of the bifurcation diagram is generated in a figure. 
 Steady state solutions (of the average opinions) are computed for each
 bifurcation parameter value of interest using fsolve.m
 
-Dependencies: generate_network.m
+Dependencies: None
 
 Authors: B.A. Moghimi, J. Valderrama, H. Kumawat
-Date: 2021 Dec 03
+Date: 2021 Dec 05
 %}
 
 close all; 
@@ -31,43 +31,26 @@ BB = -1;
 D = 2*eye(3);
 A = ones(3);
 A = A - eye(3);
-B = [-1; -1; -1];
+% B = [1; -1; -1];
 N = 3; 
 
-% N=4 network (strongly connected) for case of grid search
-% D = eye(4);
-% D(1,1) = 2; D(2,2) = 2; D(3,3) = 3; D(4,4) = 1;
-% A = [0 1 1 0 
-%      1 0 1 0 
-%      1 1 0 1 
-%      0 0 1 0];
-% B = [1; -1; 0; 0];
-% N = 4;
-
-% N=6 network (strongly connected) for case of grid search
-% D = eye(6);
-% D(1,1) = 2; D(2,2) = 2; D(3,3) = 3;
-% D(4,4) = 3; D(5,5) = 2; D(6,6) = 2;
-% A = [0 1 1 0 0 0
-%      1 0 1 0 0 0
-%      1 1 0 1 0 0
-%      0 0 1 0 1 1
-%      0 0 0 1 0 1
-%      0 0 0 1 1 0];
-% B = [ones(3,1); -ones(3,1)];
-% N = 6;
-     
-
 % Control Parameter (stop signalling cross-inhibition in honeybees)
-u = .25:0.05:3;
+u = .25:0.05:2;
 
 % Initialize plot
 % if fig2plot == 4
 %     model_redux_fig = figure();
 % end
 
+tic
 y = {}; % Average opinions 
 % Loop over 
+Bvals = -1:.2:1;
+for bb1 = 1:length(Bvals)
+for bb2 = 1:length(Bvals)
+for bb3 = 1:length(Bvals)
+B = [Bvals(bb1); Bvals(bb2); Bvals(bb3)];
+
 for uidx = 1:length(u) %1:length(u) 
     
     % Agents' Initial Opinions
@@ -76,7 +59,7 @@ for uidx = 1:length(u) %1:length(u)
     funcHive = @(x) hiveSiteConsensus(x,D,A,u(uidx),B);
 %     xidx = fsolve(funcHive,x0);
 %     yidx = mean(xidx);
-    
+
     % Grid Search (brute force) N = 3
     if N == 3
 %         if u(uidx) > singu
@@ -97,52 +80,6 @@ for uidx = 1:length(u) %1:length(u)
             y{uidx} = yidx;
 %         end
     end
-    % Grid Search (brute force) N = 4
-%     if N == 4
-%         if u(uidx) > singu
-%             grid = BB:.2:BA;
-%             yidx_arr =[];
-%             for g1 = 1:length(grid)
-%                 for g2 = 1:length(grid)
-%                     for g3 = 1:length(grid)
-%                         for g4 = 1:length(grid)
-%                             x0 = [grid(g1) grid(g2) grid(g3) grid(g4)]';
-%                             xidx = fsolve(funcHive,x0);
-%                             yidx = mean(xidx);
-%                             yidx_arr = [yidx_arr yidx];
-%                         end
-%                     end
-%                 end
-%             end
-%             yidx = round(yidx_arr,4); % Round to 4 decimal places
-%             yidx = unique(yidx); % Select only for unique values
-%         end
-%     end
-    % Grid Search (brute force) N = 6
-%     if N == 6
-%         if u(uidx) > singu
-%             grid = BB:.2:BA;
-%             yidx_arr =[];
-%             for g1 = 1:length(grid)
-%                 for g2 = 1:length(grid)
-%                     for g3 = 1:length(grid)
-%                           for g4 = 1:length(grid)
-%                                 for g5 = 1:length(grid)
-%                                     for g6 = 1:length(grid)
-%                                         x0 = [grid(g1) grid(g2) grid(g3) grid(g4) grid(g5) grid(g6)]';
-%                                         xidx = fsolve(funcHive,x0);
-%                                         yidx = mean(xidx);
-%                                         yidx_arr = [yidx_arr yidx];
-%                                     end
-%                                 end
-%                           end
-%                     end
-%                 end
-%             end
-%             yidx = round(yidx_arr,4); % Round to 4 decimal places
-%             yidx = unique(yidx); % Select only for unique values
-%         end
-%     end
      
     % Update plot if
 %     if u(uidx) == 2 && fig2plot == 4
@@ -171,10 +108,20 @@ for ii=1:length(u)
         plot(u(ii),z(jj),'rx') % Need to include a marker type such as 'x' or 'o' to see points on figure
     end
 end
-title({'Bifurcation diagram','N=3',sprintf('\beta = [%f, %f, %f]',B(1),B(2),B(3))});
+title({'Bifurcation diagram','N=4',sprintf('B=[%f,%f,%f]',B(1),B(2),B(3))});
 xlabel('Bifurcation paramter (u)','FontSize',16,'FontWeight','bold');
 ylabel('Average Opinion (y)','FontSize',16,'FontWeight','bold');
 hold off;
+
+savefig(bifurcation_fig,sprintf('N3_Unfold_B_%d_%d_%d',bb1,bb2,bb3)) % Save figure to .fig file
+save(sprintf('N3_Unfold_B_%d_%d_%d',bb1,bb2,bb3),'y') % Save data to .mat file
+close(bifurcation_fig)
+
+end
+end
+end
+
+
 
 
 %% ***************************************************************************************
